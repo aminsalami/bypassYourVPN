@@ -1,0 +1,45 @@
+#!/bin/bash
+
+if [[ $(id -u) -ne 0 ]]; then
+	echo "[-] Run this shit as root."
+	exit 1
+fi
+
+getopts ":i:" option
+
+addSingle() {
+    echo "Adding $1 ..."
+    IP_RE="^[1-9]{1,3}\.[1-9]{1,3}\.[1-9]{1,3}\.[1-9]{1,3}$"
+    if [[ $1 =~ $IP_RE ]];then
+    	IP=$1
+    else
+    	IP=$(dig +short $1 | tail -n1)
+    fi
+
+    ip route add $IP via 192.168.1.1 dev wlp3s0
+}
+
+addFromFile() {
+    if [[ ! -a $OPTARG ]]; then
+        echo "FIle doest not exists!"
+        exit 3
+    fi
+    exec 99< ${OPTARG}  # file descriptor
+    while read -u 99 domain; do
+        addSingle $domain
+    done
+}
+
+if [[ ${option} = "i" ]]; then
+    addFromFile
+    exit 0
+elif [[ "$#" -ne 1 ]]; then
+    printf "[-] Jesus! Do you really expect me to pull a random IP from my ass?\n[-] Give me a fukcing IP or Domain-Name to work on!\n"
+    exit 2
+fi
+
+addSingle $1
+
+echo
+echo "Done!"
+
