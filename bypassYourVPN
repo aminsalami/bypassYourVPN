@@ -5,7 +5,13 @@ if [[ $(id -u) -ne 0 ]]; then
 	exit 1
 fi
 
+if [[ -z $(which lshw) ]]; then
+    echo "[-] Run `sudo apt install lshw`"
+    exit 1
+fi
+
 GW=$(route -n | grep 'UG[ \t]' | awk '{print $2}')
+DEV=$(lshw -class network | grep -A 20 "bus info" | grep -A10 -B10 "ip=" | grep name | awk -F ': ' '{print $2}')
 
 getopts ":i:" option
 
@@ -15,10 +21,12 @@ addSingle() {
     if [[ $1 =~ $IP_RE ]];then
     	IP=$1
     else
-    	IP=$(dig +short $1 | tail -n1)
+        ns=$1
+        
+    	IP=$(dig +short $ns | tail -n1)
     fi
 
-    ip route add $IP via $GW dev wlp3s0
+    ip route add $IP via $GW dev $DEV
 }
 
 addFromFile() {
